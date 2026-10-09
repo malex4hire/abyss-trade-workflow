@@ -36,7 +36,7 @@ jobs:
       - run: docker compose --profile test run --build --rm tests
       - run: python3 scripts/smoke.py
       - name: Container security scan
-        uses: aquasecurity/trivy-action@0.33.1
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: abyss-trade-mnt-api
           severity: CRITICAL,HIGH
