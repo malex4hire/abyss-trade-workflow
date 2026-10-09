@@ -89,3 +89,7 @@ No benchmark establishes connected-user capacity or a Go/Java performance winner
 - [Local setup and recovery commands](docs/local-demo.md)
 
 Both implementations are included. Go is the earlier architectural baseline; Java is the completion-event and SSE edition. React is the browser layer, while virtual threads handle Java request execution.
+
+## License
+
+[MIT](LICENSE) — Copyright © 2026 Abyss Applied LLC.
