@@ -1,5 +1,7 @@
 # abyss-trade-workflow
 
+![Go](https://img.shields.io/badge/Go-00ADD8?logo=go&logoColor=white) ![Java](https://img.shields.io/badge/Java-ED8B00?logo=openjdk&logoColor=white) ![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=white) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white) ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?logo=postgresql&logoColor=white) ![Kafka](https://img.shields.io/badge/Kafka-231F20?logo=apachekafka&logoColor=white) ![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)
+
 A trade declaration demo with **Go and Java implementations**, React portals, PostgreSQL transactional outboxes, and Kafka. The Java 25 edition uses Spring MVC with virtual threads and authenticated SSE status notifications. The Go baseline uses goroutines and browser polling.
 
 Create a draft, submit it, and watch a background worker accept or reject it. The Java portal keeps one persistent status subscription. PostgreSQL holds the authoritative declaration and audit history.
