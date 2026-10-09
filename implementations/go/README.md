@@ -93,7 +93,7 @@ The smoke test checks real HTTP/Kafka processing, accepted/rejected results, and
 With local development tools:
 
 ```sh
-# Go 1.24 or later
+# Go 1.26.9 or later
 go test -race ./cmd/... ./internal/...
 go vet ./cmd/... ./internal/...
 go build ./cmd/trade

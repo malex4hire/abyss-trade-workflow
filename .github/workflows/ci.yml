@@ -40,7 +40,7 @@ jobs:
           exit-code: '1'
       - name: Diagnostics
         if: failure()
-        run: docker compose logs --tail 100
+        run: if [ -f .env ]; then docker compose logs --tail 100; fi
       - name: Stop services
         if: always()
-        run: docker compose down
+        run: if [ -f .env ]; then docker compose down; fi

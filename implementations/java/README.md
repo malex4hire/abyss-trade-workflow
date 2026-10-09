@@ -4,7 +4,7 @@ Run from `implementations/java/`; use `implementations/go/README.md` for Go.
 
 A maintainable single-workflow demonstration: create a trade declaration draft, submit it, and receive an asynchronous accepted/rejected decision in the React portal.
 
-The backend uses **Java 25, Spring Boot 3.5.16, Spring MVC, virtual threads, JDBC, PostgreSQL, Flyway and Spring Kafka**. It does not use WebFlux. Separate API, publisher and worker processes run from the same Java codebase with different Spring profiles.
+The backend uses **Java 25, Spring Boot 4.0.8, Spring MVC, virtual threads, JDBC, PostgreSQL, Flyway and Spring Kafka**. It does not use WebFlux. Separate API, publisher and worker processes run from the same Java codebase with different Spring profiles.
 
 ## Start in WSL or Linux
 
@@ -140,7 +140,7 @@ It does not demonstrate JPA/Hibernate, JMS, automated AI test generation, Arazzo
 
 The local demo token, synthetic trade rule, plaintext internal broker, sample database credentials and single-node infrastructure are for demonstration. Production work includes real OIDC/OAuth identity and authorization, approved duplicate rules, migrations and backup recovery, TLS, managed secrets, observability, scaling, accessibility verification and program-specific security requirements.
 
-Reference: [Spring Boot 3.5 system requirements](https://docs.spring.io/spring-boot/3.5/system-requirements.html).
+Reference: [Spring Boot 4.0 system requirements](https://docs.spring.io/spring-boot/4.0/system-requirements.html).
 
 ## Persistent status subscription
 
