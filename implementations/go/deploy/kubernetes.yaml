@@ -1,0 +1,109 @@
+# Starter workload manifests. Supply managed PostgreSQL and Kafka separately.
+# Create secret trade-runtime containing DATABASE_URL, KAFKA_BROKERS, DEMO_TOKEN.
+# Replace the image with your pushed image digest. Apply DB migration before rollout.
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: trade-config }
+data: { PORT: "8080" }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: trade-api }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: trade-api } }
+  template:
+    metadata: { labels: { app: trade-api } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 65532 }
+      containers:
+        - name: api
+          image: trade-demo:replace-with-pushed-image
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            [
+              { secretRef: { name: trade-runtime } },
+              { configMapRef: { name: trade-config } },
+            ]
+          securityContext:
+            {
+              allowPrivilegeEscalation: false,
+              readOnlyRootFilesystem: true,
+              capabilities: { drop: [ALL] },
+            }
+          resources:
+            requests: { cpu: 100m, memory: 64Mi }
+            limits: { cpu: 500m, memory: 256Mi }
+          readinessProbe:
+            {
+              httpGet: { path: /health, port: 8080 },
+              initialDelaySeconds: 5,
+              periodSeconds: 5,
+            }
+          livenessProbe:
+            {
+              tcpSocket: { port: 8080 },
+              initialDelaySeconds: 10,
+              periodSeconds: 10,
+            }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: trade-api }
+spec:
+  selector: { app: trade-api }
+  ports: [{ port: 8080, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: trade-publisher }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: trade-publisher } }
+  template:
+    metadata: { labels: { app: trade-publisher } }
+    spec:
+      containers:
+        - name: publisher
+          image: trade-demo:replace-with-pushed-image
+          env: [{ name: MODE, value: publisher }]
+          envFrom: [{ secretRef: { name: trade-runtime } }]
+          securityContext:
+            {
+              runAsNonRoot: true,
+              runAsUser: 65532,
+              allowPrivilegeEscalation: false,
+              readOnlyRootFilesystem: true,
+            }
+          resources:
+            {
+              requests: { cpu: 100m, memory: 64Mi },
+              limits: { cpu: 500m, memory: 256Mi },
+            }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: trade-worker }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: trade-worker } }
+  template:
+    metadata: { labels: { app: trade-worker } }
+    spec:
+      containers:
+        - name: worker
+          image: trade-demo:replace-with-pushed-image
+          env: [{ name: MODE, value: worker }]
+          envFrom: [{ secretRef: { name: trade-runtime } }]
+          securityContext:
+            {
+              runAsNonRoot: true,
+              runAsUser: 65532,
+              allowPrivilegeEscalation: false,
+              readOnlyRootFilesystem: true,
+            }
+          resources:
+            {
+              requests: { cpu: 100m, memory: 64Mi },
+              limits: { cpu: 500m, memory: 256Mi },
+            }

@@ -1,0 +1,174 @@
+openapi: 3.0.3
+info:
+  title: Abyss Applied Trade Workflow Demo
+  version: 2.0.0
+  description: Synthetic demonstration. Validation rules are illustrative, not customs rules.
+servers:
+  - url: http://localhost:18080
+security:
+  - demoBearer: []
+paths:
+  /api/events:
+    get:
+      operationId: subscribeDeclarationChanges
+      description: Authenticated SSE invalidations. reset refreshes on connection, changed refreshes on completion, heartbeat keeps the stream alive. Reconnect and read a snapshot after interruption.
+      responses:
+        "200":
+          description: Persistent event stream
+          content:
+            text/event-stream:
+              schema: { type: string }
+        "401": { $ref: "#/components/responses/Error" }
+  /health:
+    get:
+      security: []
+      responses:
+        "200": { description: API and database healthy }
+        "503": { description: Database unavailable }
+  /api/declarations:
+    post:
+      operationId: createDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Declaration" }
+      responses:
+        "201":
+          description: Draft created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Status" }
+        "400": { $ref: "#/components/responses/Error" }
+        "401": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+    get:
+      operationId: listDeclarations
+      responses:
+        "200":
+          description: Latest 100 declarations belonging to the demo identity
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Record" }
+        "401": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/declarations/{id}:
+    parameters:
+      - { $ref: "#/components/parameters/ID" }
+    get:
+      operationId: getDeclaration
+      responses:
+        "200":
+          description: Declaration with audit history
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Record" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+  /api/declarations/{id}/submit:
+    parameters:
+      - { $ref: "#/components/parameters/ID" }
+    post:
+      operationId: submitDeclaration
+      description: Locks the draft and commits status, audit entry, and outbox event together. Repeated submission returns current status without creating another event.
+      responses:
+        "202":
+          description: Submission queued
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Status" }
+        "200":
+          description: Already submitted; current status returned
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Status" }
+        "401": { $ref: "#/components/responses/Error" }
+        "404": { $ref: "#/components/responses/Error" }
+        "500": { $ref: "#/components/responses/Error" }
+        "503": { $ref: "#/components/responses/Error" }
+components:
+  securitySchemes:
+    demoBearer:
+      {
+        type: http,
+        scheme: bearer,
+        description: Shared local demo identity only; not production authentication,
+      }
+  parameters:
+    ID:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+  responses:
+    Error:
+      description: Request failed
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [error]
+            properties:
+              error: { type: string }
+  schemas:
+    Declaration:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          importer,
+          originCountry,
+          commodityCode,
+          declaredValueCents,
+          currency,
+          shipmentReference,
+        ]
+      properties:
+        importer:
+          {
+            type: string,
+            minLength: 1,
+            maxLength: 120,
+            example: Abyss Demo Imports,
+          }
+        originCountry: { type: string, pattern: "^[A-Z]{2}$", example: CA }
+        commodityCode:
+          { type: string, pattern: "^[0-9]{6}$", example: "847130" }
+        declaredValueCents:
+          {
+            type: integer,
+            format: int64,
+            minimum: 1,
+            maximum: 100000000000,
+            example: 125000,
+          }
+        currency: { type: string, enum: [USD] }
+        shipmentReference:
+          { type: string, minLength: 1, maxLength: 80, example: SHIP-001 }
+    Status:
+      type: object
+      required: [id, status]
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [draft, submitted, accepted, rejected] }
+    Record:
+      allOf:
+        - { $ref: "#/components/schemas/Status" }
+        - type: object
+          properties:
+            data: { $ref: "#/components/schemas/Declaration" }
+            reason: { type: string }
+            createdAt: { type: string, format: date-time }
+            audit:
+              type: array
+              items:
+                type: object
+                properties:
+                  action: { type: string }
+                  detail: { type: string }
+                  at: { type: string, format: date-time }

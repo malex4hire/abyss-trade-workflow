@@ -1,0 +1,47 @@
+spring:
+  application:
+    name: abyss-trade-demo
+  threads:
+    virtual:
+      enabled: true
+  main:
+    keep-alive: true
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/trade}
+    username: ${DATABASE_USERNAME:trade}
+    password: ${DATABASE_PASSWORD:trade}
+    hikari:
+      maximum-pool-size: 10
+      connection-timeout: 5000
+  flyway:
+    enabled: true
+    clean-disabled: true
+    baseline-on-migrate: false
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: true
+      fail-on-trailing-tokens: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    consumer:
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      properties:
+        enable.idempotence: true
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+    listener:
+      ack-mode: record
+      concurrency: 1
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+trade:
+  mode: api
+  demo-token: ${DEMO_TOKEN:}

@@ -1,0 +1,127 @@
+# Starter workload manifests. Supply managed PostgreSQL and Kafka separately.
+# Create secret trade-runtime containing DATABASE_URL (JDBC), DATABASE_USERNAME, DATABASE_PASSWORD, KAFKA_BROKERS, DEMO_TOKEN.
+# Replace the image with your pushed image digest. Flyway applies migrations on startup. Review migration ownership for production.
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: trade-config }
+data: { PORT: "8080" }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: trade-api }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: trade-api } }
+  template:
+    metadata: { labels: { app: trade-api } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      volumes:
+        - name: java-tmp
+          emptyDir: {}
+      containers:
+        - name: api
+          image: trade-demo-java:replace-with-pushed-image
+          volumeMounts:
+            - name: java-tmp
+              mountPath: /tmp
+          ports: [{ containerPort: 8080 }]
+          envFrom:
+            [
+              { secretRef: { name: trade-runtime } },
+              { configMapRef: { name: trade-config } },
+            ]
+          securityContext:
+            {
+              allowPrivilegeEscalation: false,
+              readOnlyRootFilesystem: true,
+              capabilities: { drop: [ALL] },
+            }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          readinessProbe:
+            {
+              httpGet: { path: /health, port: 8080 },
+              initialDelaySeconds: 20,
+              periodSeconds: 5,
+            }
+          livenessProbe:
+            {
+              tcpSocket: { port: 8080 },
+              initialDelaySeconds: 30,
+              periodSeconds: 10,
+            }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: trade-api }
+spec:
+  selector: { app: trade-api }
+  ports: [{ port: 8080, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: trade-publisher }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: trade-publisher } }
+  template:
+    metadata: { labels: { app: trade-publisher } }
+    spec:
+      volumes:
+        - name: java-tmp
+          emptyDir: {}
+      containers:
+        - name: publisher
+          image: trade-demo-java:replace-with-pushed-image
+          volumeMounts:
+            - name: java-tmp
+              mountPath: /tmp
+          env: [{ name: SPRING_PROFILES_ACTIVE, value: publisher }]
+          envFrom: [{ secretRef: { name: trade-runtime } }]
+          securityContext:
+            {
+              runAsNonRoot: true,
+              runAsUser: 10001,
+              allowPrivilegeEscalation: false,
+              readOnlyRootFilesystem: true,
+            }
+          resources:
+            {
+              requests: { cpu: 100m, memory: 128Mi },
+              limits: { cpu: 500m, memory: 512Mi },
+            }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: trade-worker }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: trade-worker } }
+  template:
+    metadata: { labels: { app: trade-worker } }
+    spec:
+      volumes:
+        - name: java-tmp
+          emptyDir: {}
+      containers:
+        - name: worker
+          image: trade-demo-java:replace-with-pushed-image
+          volumeMounts:
+            - name: java-tmp
+              mountPath: /tmp
+          env: [{ name: SPRING_PROFILES_ACTIVE, value: worker }]
+          envFrom: [{ secretRef: { name: trade-runtime } }]
+          securityContext:
+            {
+              runAsNonRoot: true,
+              runAsUser: 10001,
+              allowPrivilegeEscalation: false,
+              readOnlyRootFilesystem: true,
+            }
+          resources:
+            {
+              requests: { cpu: 100m, memory: 128Mi },
+              limits: { cpu: 500m, memory: 512Mi },
+            }

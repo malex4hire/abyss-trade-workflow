@@ -1,0 +1,46 @@
+name: Verify Java trade demo
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: implementations/java
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: implementations/java/pom.xml
+      - run: ./mvnw -B -ntp spotless:check verify
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci && npm run format:check && npm run lint && npm test && npm run build
+        working-directory: implementations/java/web
+      - run: ./demo
+      - name: Wait for API
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fsS http://localhost:18080/health; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - run: python3 scripts/smoke.py
+      - name: Container security scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: abyss-trade-java-events-api
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Diagnostics
+        if: failure()
+        run: docker compose logs --tail 100
+      - name: Stop services
+        if: always()
+        run: docker compose down
